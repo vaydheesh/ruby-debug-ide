@@ -218,12 +218,18 @@ module Debugger
 
       3.times do |i|
         begin
-          s = TCPSocket.open(acceptor_host, acceptor_port)
-          dispatcher_answer = s.gets.chomp
+          $stderr.puts "#{Process.pid}: go create dispatcher socket #{acceptor_host} #{acceptor_port}"
 
-          if dispatcher_answer == "true"
-            port = Debugger.find_free_port(host)
+          # Try to connect using the host IP address.  If that fails
+          # then assume we are on a Mac and try the internal DNS.
+          begin
+            s = TCPSocket.open(acceptor_host, acceptor_port)
+          rescue
+            # Assume we are on a Mac and try the internal host DNS.
+            s = TCPSocket.open('host.docker.internal', acceptor_port)
           end
+
+          dispatcher_answer = s.gets.chomp
 
           server = yield port, dispatcher_answer == "true"
 
